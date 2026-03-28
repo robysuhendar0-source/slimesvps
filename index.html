@@ -384,14 +384,32 @@ p6 3bulan 3x claim
     let filteredData = []; 
 
     async function secureFetch(payload) {
-        if(sessionToken) payload.token = sessionToken;
-        try {
-            const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-            const data = await res.json();
-            if(data && data.msg === "Session Invalid / Expired!"){ alert("Sesi Berakhir, Silahkan Login Ulang."); localStorage.clear(); location.reload(); return null; }
-            return data;
-        } catch(e) { console.error(e); return {status:"error", msg:"Server tidak merespon."}; }
+    if(sessionToken) payload.token = sessionToken;
+    try {
+        const res = await fetch(API_URL, { 
+            method: "POST", 
+            headers: {
+                "Content-Type": "application/json" // Pastikan header ini ada
+            },
+            body: JSON.stringify(payload) 
+        });
+        
+        if (!res.ok) throw new Error('Network response was not ok');
+        
+        const data = await res.json();
+        if(data && data.msg === "Session Invalid / Expired!"){ 
+            alert("Sesi Berakhir, Silahkan Login Ulang."); 
+            localStorage.clear(); 
+            location.reload(); 
+            return null; 
+        }
+        return data;
+    } catch(e) { 
+        console.error("Fetch Error:", e); 
+        alert("Gagal terhubung ke Server Rimuru. Pastikan Backend aktif!");
+        return {status:"error", msg:"Server tidak merespon."}; 
     }
+}
 
     window.onload = function() {
         const savedToken = localStorage.getItem("rimuru_token"), savedUser = localStorage.getItem("rimuru_user"), savedRole = localStorage.getItem("rimuru_role");
