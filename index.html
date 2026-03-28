@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rimuru Store V6 - Tempest Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --rimuru-sky: #7dd3fc; --rimuru-deep: #0ea5e9; --sage-purple: #818cf8; --tempest-bg: #020617; }
+        body { -webkit-user-select: none; background: radial-gradient(circle at top right, #0f172a, #020617); color: white; font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; }
+        .hidden { display: none; }
+        .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(125, 211, 252, 0.15); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5); }
+        .rimuru-gradient { background: linear-gradient(135deg, #7dd3fc 0%, #0ea5e9 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .animate-pop { animation: sage-popup 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes sage-popup { from { transform: translateY(15px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+        .btn-rimuru { background: linear-gradient(45deg, #0ea5e9, #6366f1); position: relative; overflow: hidden; transition: all 0.3s ease; }
+        .btn-rimuru:active { transform: scale(0.96); filter: brightness(1.2); }
+        .shimmer-btn::after { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent); transform: rotate(45deg); animation: aura-flow 4s infinite; }
+        @keyframes aura-flow { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--rimuru-sky); border-radius: 10px; }
+        .modal-overlay { background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); }
+        input, select { background: rgba(15, 23, 42, 0.8) !important; border: 1px solid rgba(125, 211, 252, 0.2) !important; }
+        input:focus { border-color: var(--rimuru-sky) !important; outline: none; box-shadow: 0 0 15px rgba(125, 211, 252, 0.1); }
+        #adminChart { max-height: 180px !important; }
+        .table-container { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .table-container thead th { position: sticky; top: 0; background: #0f172a; z-index: 10; border-bottom: 2px solid rgba(125, 211, 252, 0.1); }
+        
+        .btn-update-pulse {
+            position: relative;
+            animation: pulse-update 2s infinite;
+            border: 1px solid rgba(125, 211, 252, 0.5) !important;
+        }
+        @keyframes pulse-update {
+            0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(14, 165, 233, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+        }
+        .update-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            border: 1px solid white;
+            animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div id="resultModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 modal-overlay">
+    <div class="glass-card w-full max-w-sm rounded-[2.5rem] overflow-hidden flex flex-col animate-pop border-2 border-sky-400/50">
+        <div class="p-6 bg-sky-500/20 border-b border-sky-400/20 text-center">
+            <h2 class="text-sky-300 font-black tracking-widest uppercase italic text-sm">ЁЯТа MANIFESTATION COMPLETE ЁЯТа</h2>
+        </div>
+        <div class="p-8 text-center">
+            <p id="resPaket" class="text-[10px] text-sky-400 font-bold uppercase mb-2 tracking-[0.2em]"></p>
+            <div class="bg-slate-950/80 p-5 rounded-2xl border border-sky-900/50 mb-6">
+                <p id="resAccount" class="text-white font-mono text-sm break-all font-bold"></p>
+            </div>
+            <button onclick="copyAccountResult()" class="w-full btn-rimuru p-4 rounded-2xl font-black text-xs uppercase shadow-lg mb-3">Salin Skill Akun</button>
+            <button onclick="closeModal('resultModal'); location.reload();" class="w-full bg-slate-800/50 p-4 rounded-2xl font-black text-xs uppercase text-slate-400 border border-white/5">Kembali</button>
+        </div>
+    </div>
+</div>
+
+<div id="userDetailModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 modal-overlay">
+    <div class="glass-card w-full max-w-md rounded-[2.5rem] overflow-hidden flex flex-col animate-pop border border-sky-500/30 shadow-2xl">
+        <div class="p-6 bg-sky-600/20 border-b border-sky-500/20 flex justify-between items-center">
+            <div>
+                <h2 id="detUserName" class="text-sky-300 font-black tracking-widest uppercase italic text-sm">USER DETAIL</h2>
+                <p id="detRangeDate" class="text-[9px] text-slate-400 font-bold italic uppercase"></p>
+            </div>
+            <button onclick="closeModal('userDetailModal')" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+        </div>
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <div id="detSummary" class="grid grid-cols-2 gap-2 mb-4"></div>
+            <div class="bg-slate-950/50 rounded-2xl border border-white/5 overflow-hidden">
+                <table class="w-full text-[10px] text-left">
+                    <thead class="bg-slate-900 text-slate-500 uppercase font-black">
+                        <tr>
+                            <th class="p-3">WAKTU</th>
+                            <th class="p-3">PAKET</th>
+                            <th class="p-3">HARGA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detLogsBody" class="text-white font-medium"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="p-4 bg-slate-900/50">
+            <button onclick="closeModal('userDetailModal')" class="w-full btn-rimuru p-4 rounded-2xl font-black text-xs uppercase">Tutup Report</button>
+        </div>
+    </div>
+</div>
+
+<div id="userPassModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+    <div class="glass-card w-full max-w-sm rounded-[2.5rem] overflow-hidden flex flex-col animate-pop border border-indigo-500/30">
+        <div class="p-6 bg-indigo-600/20 border-b border-indigo-500/20 text-center">
+            <h2 class="text-indigo-400 font-black tracking-widest uppercase text-sm italic">ЁЯФР UPDATE MAGIC KEY</h2>
+        </div>
+        <div class="p-6 space-y-4">
+            <input type="password" id="u_newpass" placeholder="Password Baru" class="w-full p-4 rounded-2xl text-white outline-none text-center text-sm font-bold">
+            <button onclick="submitUserPass(event)" id="btnUserPass" class="w-full btn-rimuru p-4 rounded-2xl font-black text-xs uppercase shadow-lg">Confirm Evolution</button>
+            <button onclick="closeModal('userPassModal')" class="w-full bg-slate-800/50 p-3 rounded-2xl font-black text-[10px] uppercase text-slate-400">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="resellerModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+    <div class="glass-card w-full max-w-sm rounded-[2.5rem] overflow-hidden flex flex-col animate-pop border border-sky-500/40 shadow-2xl">
+        <div class="p-6 bg-sky-600/20 border-b border-sky-500/20 text-center">
+            <h2 class="text-sky-300 font-black tracking-widest uppercase italic text-sm">ЁЯТ░ MARKET PRICE</h2>
+        </div>
+        <div class="p-6 overflow-y-auto max-h-[60vh] text-xs space-y-4">
+            <p class="text-[9px] text-sky-400/60 font-bold uppercase tracking-tighter text-center italic">"Suggested pricing for Tempest Citizens"</p>
+            <div class="grid grid-cols-2 gap-4 text-left px-2 bg-slate-950/50 p-4 rounded-2xl">
+                <div class="text-slate-400 leading-relaxed">Paket 10k<br>Paket Hemat<br>Paket 1<br>Paket 2<br>Paket 3<br>Paket 4<br>Paket 5</div>
+                <div class="text-sky-400 font-black leading-relaxed">ЁЯТ╕ 5k<br>ЁЯТ╕ 10k<br>ЁЯТ╕ 15k<br>ЁЯТ╕ 30k<br>ЁЯТ╕ 75k<br>ЁЯТ╕ 75k<br>ЁЯТ╕ 100k</div>
+            </div>
+            <div class="border-t border-white/5 pt-4 grid grid-cols-2 gap-4 text-left px-2">
+                <div class="text-slate-400">Safeban Newbie<br>Safeban Pro</div>
+                <div class="text-orange-400 font-black">ЁЯТ╕ 50k<br>ЁЯТ╕ 100k</div>
+            </div>
+        </div>
+        <div class="p-4"><button onclick="closeModal('resellerModal')" class="w-full btn-rimuru p-4 rounded-2xl font-black text-xs uppercase">Tutup</button></div>
+    </div>
+</div>
+
+<div id="updateModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 modal-overlay">
+    <div class="glass-card w-full max-w-sm rounded-[2.5rem] overflow-hidden flex flex-col animate-pop border border-white/10">
+        <div class="p-6 bg-slate-800/50 border-b border-white/10 text-center">
+            <h2 class="text-slate-300 font-black tracking-widest uppercase text-sm italic">ЁЯУв SKILL UPDATE LOG V2</h2>
+        </div> 
+        <div class="p-6 overflow-y-auto max-h-[60vh] text-[11px] space-y-3">
+            <div class="bg-sky-500/5 p-3 rounded-2xl border border-sky-500/10">
+                <p class="text-sky-400 font-bold mb-1">тЬЕ V9.1: Daily Report</p>
+                <p class="text-slate-400">Admin bisa cek transaksi per hari / Logs dari tanggal ke tanggal dan total setoran yang user Transfer.</p>
+            </div>
+            <div class="bg-indigo-500/5 p-3 rounded-2xl border border-indigo-500/10">
+                <p class="text-indigo-400 font-bold mb-1">ЁЯЪА V9.2: Update Price list dan Update mode Desktop</p>
+                <p class="text-slate-400">Spec acc = Klik (Price) || Price per akun harga seller = Klik (Price Citizens) // Mode desktop Hadir di website ini.</p>
+            </div>
+            <div class="bg-indigo-500/5 p-3 rounded-2xl border border-indigo-500/10">
+                <p class="text-indigo-400 font-bold mb-1">ЁЯЪШV9.4: Deep Sage Analysis</p>
+                <p class="text-slate-400">Klik nama user di tabel Admin untuk melihat detail paket, jumlah, dan jam transaksi secara real-time.</p>
+            </div>
+        </div>
+        <div class="p-4"><button onclick="closeModal('updateModal')" class="w-full btn-rimuru p-4 rounded-2xl font-black text-xs uppercase shadow-lg">Understood</button></div>
+    </div>
+</div>
+
+<div id="priceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+    <div class="glass-card w-full max-w-md max-h-[85vh] rounded-[2.5rem] overflow-hidden flex flex-col animate-pop border border-sky-500/30">
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-sky-500/10">
+            <h2 class="text-sky-300 font-black tracking-widest text-sm uppercase italic">ЁЯУЬ SCROLL OF TEMPEST</h2>
+            <button onclick="closeModal('priceModal')" class="text-slate-500 font-bold text-2xl hover:text-white transition-colors">&times;</button>
+        </div>
+        <div id="priceContent" class="p-6 overflow-y-auto text-[10px] space-y-4 whitespace-pre-wrap custom-scrollbar text-slate-300 font-medium leading-relaxed">
+тЬНя╕ПPAKET 10k
+тЧПGOLD & MONEY 999M
+тЧПLEVEL MAX
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+тЬНя╕ПPAKET HEMAT UNLOCK MOUNTAIN MAP 
+тЧП1B GOLD & 2B DOLLAR UNLIMITED , MAX LEVEL 50
+тЧПUNLOCK 2 MOUNTAIN MAP
+ЁЯТ╡PRICE IDR = 20K
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+тЬНя╕ПPAKET 1 [NEWBIE]
+тЧПGOLD & DOLLAR UNLIMITED , MAX LEVEL 50
+тЧПPremium Car S80 Royal Lynx & M36 + elite Apartement
+тЧПGET BONUS CAR FF4 Technoir & LMD lamborghini Diablo Midnight Phoenix , BX5 , Aston martin AMV & Lexus LFA
+тЧП UNLOCK 2 MOUNTAIN MAP
+тЧП UNLOCK SUNSET CITY CIRCUIT
+ЁЯТ╡PRICE IDR = 30K
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+тЬНя╕ПPAKET 2 [ELITE NEWBIE]
+тЧПGOLD & DOLLAR UNLIMITED , MAX LEVEL 50
+тЧПGET BONUS CAR FF4 Technoir, LMD lamborghini Diablo Midnight Phoenix, BX5 Hill Runner, AR8 Fiery Blast, ELITE GT aston martin, ROCKET STAR Lexus LFL  and NEW FORD GT AND PORCHE GT
+тЧП UNLOCK MOUNTAIN MAP
+тЧП UNLOCK SUNSET CITY CIRCUIT
+ЁЯТ╡PRICE IDR = 60K
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+тЬНя╕ПPAKET 3 [ALL PREMIUM CAR]
+тЧПGOLD & DOLLAR UNLIMITED, MAX LEVEL 50
+тЧПUNLOCK MOUNTAIN HILLS PASS (NEW MAP)
+тЧПUNLOCK SUNSET CITY CIRCUIT
+тЧП35 MOBIL/CAR PREMIUM (Include 4 Elite Apartement)
+тЧП UNLOCK NEW PREMIUM CAR Lexus LFA & Aston martin AMV, SUPER rare VAN, PORCHE GT( 2 ) , FORD GT ( 2 )  M39 Touring, GCLASS Christmas edition, NEW premium car TESLA AND RARE BATTLEPASS LAMBO AVENTADOR
+тЧП ALL Car unlimited Nos++
+ЁЯТ╡PRICE IDR = 150K
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+тЬНя╕ПPAKET 4 [500KMH KMH]
+тЧПGOLD & DOLLAR UNLIMITED, MAX LEVEL 50
+тЧПUNLOCK MOUNTAIN HILLS PASS (NEW MAP)
+тЧП UNLOCK SUNSET CITY CIRCUIT
+тЧПUNLIMITED NOS CARS IN GARAGE (45 CAR)
+тЧПINJECT 500++ KM/H CARS IN GARAGE (45 CAR)
+тЧПUNLOCK 4 RARE PREMIUM CAR LMD,FF4, BX5, AR8) Include 4 Elite House.
+тЧП UNLOCK NEW PREMIUM CAR Lexus LFA & Aston martin AMV, VIPER, VAN, M39TOURING, PORCHE GT, FORD GT, GWAGON, TESLA, AND RARE BATTLEPASS LAMBO AVENTADOR
+тЧПBONUS WHEELIE SUPRA S80, NEW GCLASS & NEW TESLA
+ЁЯТ╡PRICE IDR = 150K
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+тЬНя╕ПPAKET 5 [ DRIFT TUNES ]
+тЧПGOLD & DOLLAR UNLIMITED, MAX LEVEL 50
+тЧПUNLOCK MOUNTAIN HILLS PASS (NEW MAP)
+тЧП UNLOCK SUNSET CITY CIRCUIT
+тЧПDRIFT TUNES RWD (44 CAR)
+тЧПUNLOCK 4 RARE PREMIUM CARS  (Include 4 Elite House) LMD, FF4, BX5, AR8 & VAN
+тЧПUNLOCK SPECIAL CHRISMAST EVENT M92C BMW E92 CABRIO SUPER RARE
+тЧП UNLOCK NEW PREMIUM CAR Lexus LFA, Aston martin & VIPER, M39 TOURING, PORCHE GT, NEW GCLASS, NEW TESLA AWD & TESLA RWD AND RARE BATTLEPASS LAMBO AVENTADOR
+ЁЯТ╡PRICE IDR = 200K
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+ЁЯе╢READY MOD SAFEBAN
+Safeban Newbie
+Unlock allmap
+Max level
+Silver 21M
+Gold 10.000
+50 mobil premium (Showroom tune)
+ЁЯТ╡Price : 100k
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+Safeban Pro
+Silver 21M
+Gold 10.000
+Unlock allmap
+40+ Drift tune car (include tesla RWD)
+ЁЯТ╡Price : 200k
+тФАтФАтФАтФАтФАтФАтК╣тК▒тЬлтК░тК╣тФАтФАтФАтФАтФАтФА
+.COLOR NAME -20K
+.INJECT PREMIUM CARS 1 MOBIL -20K
+.INJECT GOLD / SILVER -20K
+ЁЯУЛGARANSI
+P2 2minggu 1x claim
+p3 1bulan 1x claim
+p4 1bulan 1x claim
+p5 2bulan 3x claim
+p6 3bulan 3x claim
+        </div>
+        <div class="p-4 bg-slate-900/50 border-t border-white/5 flex gap-2">
+            <button onclick="copyPriceList()" class="flex-1 bg-emerald-500/20 p-3 rounded-2xl font-black text-[10px] uppercase text-emerald-400 border border-emerald-500/30">Salin Pricelist</button>
+            <button onclick="closeModal('priceModal')" class="flex-1 bg-slate-800 p-3 rounded-2xl font-black text-[10px] uppercase text-sky-400 border border-white/5">Close Scroll</button>
+        </div>
+    </div>
+</div>
+
+<div id="loginSection" class="flex h-screen items-center justify-center p-6 bg-slate-950">
+    <div class="glass-card p-10 rounded-[3rem] w-full max-w-sm shadow-2xl border border-sky-500/20 relative overflow-hidden">
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl"></div>
+        <div class="relative z-10">
+            <div class="text-center mb-10">
+                <div class="inline-block p-4 rounded-3xl bg-sky-500/10 mb-4 border border-sky-500/20 shadow-inner"><span class="text-4xl">ЁЯТз</span></div>
+                <h2 class="text-4xl font-black italic tracking-tighter rimuru-gradient">RIMURU</h2>
+                <p class="text-[9px] text-sky-400/60 font-bold uppercase tracking-[0.4em] mt-1">Tempest Federation</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="user" placeholder="Nama Citizens" class="w-full p-4 bg-slate-900/50 rounded-2xl text-white text-center font-bold">
+                <input type="password" id="pass" placeholder="Magic Password" class="w-full p-4 bg-slate-900/50 rounded-2xl text-white text-center font-bold">
+                <button onclick="handleLogin()" id="btnLogin" class="w-full btn-rimuru p-4 rounded-2xl font-black uppercase shadow-lg shimmer-btn tracking-widest text-sm">LOGIN</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="appSection" class="hidden p-4 lg:p-10 w-full mx-auto pb-12">
+    <div class="flex justify-between items-end mb-8 mt-6">
+        <div>
+            <h1 class="text-2xl lg:text-4xl font-black italic tracking-tighter">RIMURU<span class="text-sky-400"> STORE</span></h1>
+            <p id="userStatusTag" class="text-[8px] lg:text-[10px] py-1 px-3 bg-sky-500/10 text-sky-400 font-black mt-2 tracking-widest uppercase italic border-l-2 border-sky-500 inline-block rounded-r-lg"></p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="openModal('userPassModal')" class="bg-white/5 p-3 rounded-2xl border border-white/5 text-sky-400">тЪЩя╕П</button>
+            <button onclick="handleLogout()" class="bg-red-500/10 text-red-400 px-4 py-2 rounded-2xl text-[10px] font-black border border-red-500/20">EXIT</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-4 space-y-6">
+            <div class="glass-card p-6 lg:p-10 rounded-[2.5rem] flex justify-between items-center relative overflow-hidden">
+                <div class="absolute right-0 top-0 opacity-10 pointer-events-none translate-x-4 -translate-y-4"><span class="text-8xl">ЁЯТО</span></div>
+                <div class="relative z-10">
+                    <span class="text-slate-500 text-[10px] lg:text-xs font-black uppercase tracking-widest italic block mb-1">MANA COLLECTED</span>
+                    <span id="userRevenue" class="text-3xl lg:text-5xl font-black text-white tracking-tight">Rp 0</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="openModal('priceModal')" class="glass-card p-4 rounded-2xl text-sky-300 font-black text-[10px] tracking-widest shadow-lg border-b-2 border-sky-500/40 uppercase">ЁЯУЬ Price</button>
+                <button onclick="openModal('updateModal')" class="glass-card p-4 rounded-2xl text-slate-400 font-black text-[10px] tracking-widest shadow-lg italic uppercase border-b-2 border-white/10 btn-update-pulse">
+                    ЁЯУв Update V2
+                    <span class="update-dot"></span>
+                </button>
+            </div>
+            <button onclick="openModal('resellerModal')" class="w-full glass-card p-4 rounded-2xl text-indigo-300 font-black text-[10px] tracking-[0.4em] shadow-lg uppercase border-t border-white/10">ЁЯТ░ Price Citizens</button>
+            
+            <div class="glass-card p-8 rounded-[3rem] shadow-2xl relative border-t border-white/10">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 px-6 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-950">Manifestation</div>
+                <label class="text-[10px] text-sky-400/60 font-black mb-2 block uppercase tracking-widest italic">Choose Skill Tier:</label>
+                <select id="paket" class="w-full p-5 mb-5 rounded-2xl text-sm text-white font-bold outline-none ring-1 ring-sky-500/20 focus:ring-sky-500 transition-all"></select>
+                <label class="text-[10px] text-sky-400/60 font-black mb-2 block uppercase tracking-widest italic">Energy Offering (Proof):</label>
+                <div class="relative mb-8"><input type="file" id="bukti" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-6 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-sky-500/10 file:text-sky-400"></div>
+                <button id="btnGen" disabled onclick="handleGen()" class="w-full btn-rimuru p-5 rounded-3xl font-black uppercase text-sm shadow-[0_10px_30px_-10px_#0ea5e9] shimmer-btn tracking-widest">GENERATE SKILL</button>
+            </div>
+        </div>
+
+        <div class="lg:col-span-8 space-y-6">
+            <div id="adminPanel" class="hidden space-y-4">
+                <div class="p-6 bg-indigo-600/10 border-2 border-indigo-500/30 rounded-[3rem] relative overflow-hidden">
+                    <h3 class="text-indigo-400 font-black text-[11px] lg:text-sm uppercase mb-6 tracking-[0.3em] text-center italic">Authority: GREAT SAGE</h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-slate-950/80 p-4 rounded-3xl border border-indigo-500/20">
+                            <div class="relative h-48 w-full">
+                                <canvas id="adminChart"></canvas>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-4 mb-4">
+                                <div><label class="text-[8px] text-slate-500 font-bold uppercase ml-2">Dari Tanggal:</label><input type="date" id="filterStart" class="w-full p-2 text-[10px] rounded-xl bg-slate-900 border border-white/5 text-white"></div>
+                                <div><label class="text-[8px] text-slate-500 font-bold uppercase ml-2">Sampai Tanggal:</label><input type="date" id="filterEnd" class="w-full p-2 text-[10px] rounded-xl bg-slate-900 border border-white/5 text-white"></div>
+                            </div>
+                            <button onclick="applyAdminFilter()" class="w-full bg-sky-500/20 text-sky-400 p-2 rounded-xl text-[10px] font-black border border-sky-500/30">APPLY FILTER TANGGAL</button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-slate-950/50 rounded-2xl border border-white/5 overflow-hidden flex flex-col h-[200px]">
+                                <table class="table-container text-[9px] lg:text-[11px] text-left">
+                                    <thead class="bg-slate-900 text-slate-500 uppercase">
+                                        <tr>
+                                            <th class="p-3 w-1/3">USER</th>
+                                            <th class="p-3 w-1/3">JUAL</th>
+                                            <th class="p-3 w-1/3">PENDAPATAN</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                                <div class="overflow-y-auto flex-grow custom-scrollbar">
+                                    <table class="table-container text-[9px] lg:text-[11px] text-left">
+                                        <tbody id="userTableBody" class="text-white"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-950 p-5 rounded-3xl border border-white/5 flex justify-between items-center shadow-inner">
+                                <span class="text-slate-400 text-[9px] font-black uppercase italic tracking-widest">Global Omset</span>
+                                <div id="adminGlobalRevenue" class="text-right">
+                                    <span class="text-indigo-400 font-black text-sm">Rp 0</span>
+                                </div>
+                            </div>
+                            <button onclick="syncDatabase()" id="btnSync" class="w-full btn-rimuru p-4 rounded-2xl font-black text-[10px] uppercase shadow-lg shimmer-btn tracking-widest">ЁЯз╣ Harmonize Database</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
+                        <button onclick="showAdminFeature('addUser')" class="bg-slate-900/80 p-4 rounded-2xl text-[9px] font-bold text-slate-300 border border-white/5">+ New Monster</button>
+                        <button onclick="showAdminFeature('addStock')" class="bg-slate-900/80 p-4 rounded-2xl text-[9px] font-bold text-slate-300 border border-white/5">+ Stock Skill</button>
+                        <button onclick="showAdminFeature('deleteUser')" class="bg-slate-900/80 p-4 rounded-2xl text-[9px] font-bold text-red-400 border border-red-500/20">Hapus User</button>
+                        <button onclick="showAdminFeature('changePass')" class="bg-slate-900/80 p-4 rounded-2xl text-[9px] font-bold text-slate-300 border border-white/5">Adm Pass</button>
+                    </div>
+                    <div id="adminForm" class="hidden mt-6 pt-6 border-t border-indigo-500/20 space-y-4">
+                        <div id="formContent"></div>
+                        <button id="btnAdminSubmit" onclick="submitAdminAction()" class="w-full bg-indigo-500 p-4 rounded-2xl font-black text-[11px] uppercase shadow-xl hover:bg-indigo-400 transition-colors">Execute Command</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card p-8 rounded-[3rem] shadow-lg border-b border-white/5">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xs lg:text-sm font-black text-slate-400 uppercase tracking-widest italic">Evolution Logs</h3>
+                    <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse shadow-[0_0_10px_#0ea5e9]"></span>
+                </div>
+                <div id="historyList" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://166.88.227.67:3000/api";
+    const PAKET_LIST = ["Paket 10k", "Paket Hemat", "Paket 1", "Paket 2", "Paket 3", "Paket 4", "Paket 5", "Paket 6", "Safeban Newbie", "Safeban Pro"];
+    let base64Img = "", currentUser = "", currentRole = "", sessionToken = "", currentAdminAction = "";
+    let rawAdminData = []; let adminChartInstance = null;
+    let filteredData = []; 
+
+    async function secureFetch(payload) {
+        if(sessionToken) payload.token = sessionToken;
+        try {
+            const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+            const data = await res.json();
+            if(data && data.msg === "Session Invalid / Expired!"){ alert("Sesi Berakhir, Silahkan Login Ulang."); localStorage.clear(); location.reload(); return null; }
+            return data;
+        } catch(e) { console.error(e); return {status:"error", msg:"Server tidak merespon."}; }
+    }
+
+    window.onload = function() {
+        const savedToken = localStorage.getItem("rimuru_token"), savedUser = localStorage.getItem("rimuru_user"), savedRole = localStorage.getItem("rimuru_role");
+        if(savedToken && savedUser && savedRole){ sessionToken = savedToken; currentUser = savedUser; currentRole = savedRole; showApp(savedRole); }
+    };
+
+    function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+    function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+
+    function copyPriceList() {
+        const content = document.getElementById("priceContent").innerText;
+        const textArea = document.createElement("textarea");
+        textArea.value = content;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            alert("Scroll of Tempest berhasil disalin ke clipboard! ЁЯУЬтЬЕ");
+        } catch (err) {
+            alert("Gagal menyalin scroll.");
+        }
+        document.body.removeChild(textArea);
+    }
+
+    async function handleLogin(){
+        const user = document.getElementById('user').value, pass = document.getElementById('pass').value, btn = document.getElementById('btnLogin');
+        if(!user || !pass) return alert("Isi Data!"); btn.innerText = "AUTHENTICATING..."; btn.disabled = true;
+        const data = await secureFetch({action:"login", user, pass});
+        if(data && data.status === "success"){
+            sessionToken = data.token; currentUser = user; currentRole = data.role;
+            localStorage.setItem("rimuru_token", sessionToken); localStorage.setItem("rimuru_user", user); localStorage.setItem("rimuru_role", data.role);
+            showApp(data.role);
+        } else { alert(data ? data.msg : "Login Gagal!"); btn.innerText = "LOGIN"; btn.disabled = false; }
+    }
+
+    async function showApp(role){
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('appSection').classList.remove('hidden');
+        document.getElementById('userStatusTag').innerText = "Monster Class : " + currentUser;
+        updateStockUI(); loadHistory(); updateUserStats();
+        if(role === "admin"){ 
+            document.getElementById('adminPanel').classList.remove('hidden'); 
+            document.getElementById('btnGen').disabled = false; 
+            fetchAdminStats(); 
+        } else { 
+            document.getElementById('adminPanel').classList.add('hidden'); 
+            document.getElementById('btnGen').disabled = true; 
+        }
+    }
+
+    async function handleGen(){
+        if(currentRole !== "admin" && !base64Img) return alert("Wajib Upload Bukti Transfer!");
+        const btn = document.getElementById('btnGen'); btn.innerText="MANIFESTING..."; btn.disabled=true;
+        const data = await secureFetch({ action:"generate", paket: document.getElementById('paket').value, image: base64Img });
+        if(data && data.status === "success"){
+            document.getElementById('resPaket').innerText=data.paket;
+            document.getElementById('resAccount').innerText=data.email+" | "+data.pass;
+            openModal('resultModal'); base64Img = ""; document.getElementById('bukti').value = "";
+        } else { alert(data ? data.msg : "Stok Terkuras!"); btn.innerText="GENERATE SKILL"; btn.disabled = (currentRole !== "admin" && !base64Img); }
+    }
+
+    async function submitUserPass(e){
+        e.preventDefault(); const newPass = document.getElementById('u_newpass').value;
+        if(!newPass) return alert("Isi password baru!"); const btn = document.getElementById('btnUserPass'); btn.innerText="EVOLVING..."; btn.disabled=true;
+        const data = await secureFetch({action:"changePass", newPass: newPass});
+        if(data){ alert(data.msg); closeModal('userPassModal'); } btn.innerText="Confirm Evolution"; btn.disabled=false;
+    }
+
+    function showAdminFeature(type){
+        currentAdminAction = type; const form = document.getElementById('adminForm'), content = document.getElementById('formContent'); form.classList.remove('hidden');
+        if(type === "addUser") content.innerHTML = `<input id="adm_user" placeholder="Nama Monster Baru" class="w-full p-4 bg-slate-950 rounded-2xl text-white text-xs mb-2 border border-white/5"><input id="adm_pass" type="password" placeholder="Magic Password" class="w-full p-4 bg-slate-950 rounded-2xl text-white text-xs border border-white/5">`;
+        else if(type === "addStock") content.innerHTML = `<select id="adm_paket" class="w-full p-4 bg-slate-950 rounded-2xl text-white text-xs mb-2 border border-white/5">${PAKET_LIST.map(p=>`<option value="${p}">${p}</option>`).join('')}</select><textarea id="adm_data" placeholder="email|password (1 baris 1 akun)" class="w-full p-4 bg-slate-950 rounded-2xl text-white text-xs h-32 border border-white/5"></textarea>`;
+        else if(type === "changePass") content.innerHTML = `<input id="adm_newpass" type="password" placeholder="Admin Magic Key" class="w-full p-4 bg-slate-950 rounded-2xl text-white text-xs border border-white/5">`;
+        else if(type === "deleteUser") content.innerHTML = `<input id="adm_del_user" placeholder="Target User (Ex: Gabiru)" class="w-full p-4 bg-slate-950 rounded-2xl text-white text-xs italic border border-white/5">`;
+    }
+
+    async function submitAdminAction(){
+        const btn=document.getElementById('btnAdminSubmit'); btn.innerText="EXECUTING..."; btn.disabled=true; let payload={action:currentAdminAction};
+        if(currentAdminAction==="addUser"){ payload.newUser=document.getElementById('adm_user').value; payload.newPass=document.getElementById('adm_pass').value; }
+        else if(currentAdminAction==="addStock"){ payload.paket=document.getElementById('adm_paket').value; payload.dataAkun=document.getElementById('adm_data').value; }
+        else if(currentAdminAction==="changePass"){ payload.newPass=document.getElementById('adm_newpass').value; }
+        else if(currentAdminAction==="deleteUser"){ payload.targetUser=document.getElementById('adm_del_user').value; if(!confirm("Banished user?")) { btn.innerText="Execute Command"; btn.disabled=false; return; } }
+        const data=await secureFetch(payload); if(data){ alert(data.msg); location.reload(); } btn.innerText="Execute Command"; btn.disabled=false;
+    }
+
+    async function loadHistory(){
+        const data = await secureFetch({action:"getHistory"});
+        if(data && data.data){
+            document.getElementById('historyList').innerHTML=data.data.map(h=>{
+                const acc = h.email + " | " + h.pass;
+                return `<div class="bg-slate-900/40 p-5 rounded-3xl border-l-4 ${h.isLast?'border-sky-400 shadow-[0_0_15px_rgba(14,165,233,0.15)]':'border-slate-800'}">
+                    <div class="flex justify-between items-start mb-2"><span class="text-[9px] font-black uppercase ${h.isLast?'text-sky-300':'text-slate-500'} tracking-widest">${h.paket}</span><span class="text-[8px] text-slate-500 font-bold italic">${h.time}</span></div>
+                    <p class="text-xs font-mono text-white/90 mb-3 break-all font-bold">${acc}</p>
+                    <button onclick="copyToClipboard('${acc}', this)" class="text-[8px] bg-sky-500/10 text-sky-400 px-4 py-2 rounded-xl border border-sky-500/20 uppercase font-black active:scale-90 transition-all">Copy Skill</button>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    function copyToClipboard(text, btnElement = null){
+        const textArea = document.createElement("textarea");
+        textArea.value = text; document.body.appendChild(textArea); textArea.select();
+        try {
+            document.execCommand('copy');
+            if(btnElement) {
+                const originalText = btnElement.innerText;
+                btnElement.innerText = "COPIED! тЬЕ";
+                btnElement.classList.add("bg-emerald-500/20", "text-emerald-400");
+                setTimeout(() => { btnElement.innerText = originalText; btnElement.classList.remove("bg-emerald-500/20", "text-emerald-400"); }, 2000);
+            } else { alert("Skill Copied to Scroll!"); }
+        } catch (err) { console.error('Fallback copy failed', err); }
+        document.body.removeChild(textArea);
+    }
+
+    function copyAccountResult(){ const acc = document.getElementById('resAccount').innerText; copyToClipboard(acc); }
+
+    async function updateStockUI(){
+        const data=await secureFetch({action:"getStockDetail"});
+        if(data && data.stockMap) document.getElementById('paket').innerHTML=PAKET_LIST.map(p=>{ const s=data.stockMap[p]||0; return `<option value="${p}" ${s===0?'disabled':''}>${p} (${s} ${s<3&&s>0?'ЁЯФе':'Ready'})</option>`; }).join('');
+    }
+
+    async function syncDatabase(){ 
+        const btn = document.getElementById('btnSync'); btn.innerText = "HARMONIZING..."; btn.disabled = true;
+        try { const data = await secureFetch({action:"syncSheet"}); if(data){ alert(data.msg); location.reload(); } } catch(e) { alert("Failed to Sync!"); } finally { btn.innerText = "Harmonize Database"; btn.disabled = false; }
+    }
+
+    async function updateUserStats(){ const d = await secureFetch({action:"getUserStats", user: currentUser}); if(d) document.getElementById('userRevenue').innerText="Rp "+(d.revenue||0).toLocaleString(); }
+
+    async function fetchAdminStats() {
+        const data = await secureFetch({action:"getStats"});
+        if(data && data.status === "success"){
+            rawAdminData = data.userDetail || [];
+            filteredData = rawAdminData; 
+            document.getElementById('adminGlobalRevenue').innerHTML = `<div class="flex flex-col gap-1"><span class="text-indigo-400 font-black text-sm">ADM: Rp ${(data.adminRevenue || 0).toLocaleString()}</span><span class="text-sky-400 font-bold text-[10px]">RES: Rp ${(data.resellerRevenue || 0).toLocaleString()}</span></div>`;
+            renderAdminTable(rawAdminData); 
+            renderAdminChart(data.chartData);
+        }
+    }
+
+    function renderAdminTable(dataList) {
+        const tbody = document.getElementById('userTableBody');
+        if(!tbody) return;
+        tbody.innerHTML = dataList.map((u, index) => `
+            <tr class="border-t border-white/5 active:bg-sky-500/10 cursor-pointer" onclick="showUserDeepDetail(${index})">
+                <td class="p-3 w-1/3 font-bold text-sky-400 underline decoration-sky-900">${u.user}</td>
+                <td class="p-3 w-1/3">${u.totalJual} Acc</td>
+                <td class="p-3 w-1/3 text-emerald-400 font-bold">Rp ${u.totalPnd.toLocaleString()}</td>
+            </tr>`).join('');
+    }
+
+    function showUserDeepDetail(index) {
+        const user = filteredData[index]; 
+        if(!user) return;
+
+        document.getElementById('detUserName').innerText = "CITIZEN: " + user.user;
+        const start = document.getElementById('filterStart').value;
+        const end = document.getElementById('filterEnd').value;
+        document.getElementById('detRangeDate').innerText = (start && end) ? `${start} s/d ${end}` : "ALL TIME DATA";
+
+        let paketSummary = {};
+        user.rawLogs.forEach(log => {
+            paketSummary[log.paket] = (paketSummary[log.paket] || 0) + 1;
+        });
+
+        document.getElementById('detSummary').innerHTML = Object.entries(paketSummary).map(([name, qty]) => `
+            <div class="bg-slate-900 p-3 rounded-xl border border-white/5">
+                <p class="text-[8px] text-slate-500 font-black uppercase">${name}</p>
+                <p class="text-lg font-black text-sky-400">${qty} <span class="text-[10px] text-slate-400 italic">Acc</span></p>
+            </div>
+        `).join('');
+
+        document.getElementById('detLogsBody').innerHTML = user.rawLogs.map(log => `
+            <tr class="border-b border-white/5">
+                <td class="p-3 text-slate-400 italic">${log.jam}</td>
+                <td class="p-3 font-bold text-white">${log.paket}</td>
+                <td class="p-3 text-emerald-400">Rp ${log.harga.toLocaleString()}</td>
+            </tr>
+        `).reverse().join('');
+
+        openModal('userDetailModal');
+    }
+
+    function renderAdminChart(chartData) {
+        const ctx = document.getElementById('adminChart'); if (adminChartInstance) adminChartInstance.destroy();
+        adminChartInstance = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(chartData), datasets: [{ data: Object.values(chartData), backgroundColor: '#0ea5e9', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { color: '#64748b', font: { size: 8 } } } } } });
+    }
+
+    function applyAdminFilter() {
+        const start = document.getElementById('filterStart').value; 
+        const end = document.getElementById('filterEnd').value;
+        if (!start || !end) return alert("Pilih kedua tanggal!");
+        
+        filteredData = rawAdminData.map(user => { 
+            const logs = user.rawLogs.filter(log => log.tgl >= start && log.tgl <= end); 
+            const totalPnd = logs.reduce((sum, item) => sum + item.harga, 0); 
+            return { ...user, totalJual: logs.length, totalPnd: totalPnd, rawLogs: logs }; 
+        }).filter(u => u.totalJual > 0);
+
+        renderAdminTable(filteredData); 
+        alert("Sage: Data Citizen Ter-sinkronisasi!");
+    }
+
+    function handleLogout(){ if(confirm("Log out from Tempest Federation?")){ localStorage.clear(); location.reload(); } }
+    
+    document.getElementById('bukti').onchange=(e)=>{ 
+        if(!e.target.files[0]) return; 
+        const r=new FileReader(); 
+        r.onload=()=>{ base64Img=r.result; document.getElementById('btnGen').disabled=false; }; 
+        r.readAsDataURL(e.target.files[0]); 
+    };
+</script>
+</body>
+</html>
